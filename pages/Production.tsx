@@ -17,6 +17,7 @@ const formatPKR = (val: number) => {
 const Production: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mixing' | 'sealing' | 'cutting'>('mixing');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showInventory, setShowInventory] = useState(false);
   
   const [batches, setBatches] = useState<ProductionBatch[]>(db.getBatches());
   
@@ -74,6 +75,7 @@ const Production: React.FC = () => {
       quantityUsed: parseFloat(suggestedQty.toFixed(2)),
       rate: lot.ratePerKg
     }]);
+    if (window.innerWidth < 1024) setShowInventory(false);
   };
 
   const updateLotQuantity = (entryId: string, qty: number) => {
@@ -126,7 +128,7 @@ const Production: React.FC = () => {
     manifestGroups.forEach(group => {
       for (let i = 0; i < group.fixedCount; i++) {
         individualRolls.push({
-          id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11)),
+          id: crypto.randomUUID(),
           sizeId: group.sizeId,
           weightKg: group.weightPerRollKg
         });
@@ -134,7 +136,7 @@ const Production: React.FC = () => {
     });
 
     const batch: ProductionBatch = {
-      id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11)),
+      id: crypto.randomUUID(),
       batchNo: `B-${Date.now().toString().slice(-6)}`,
       date,
       consumedMaterials: selectedLots.filter(l => l.quantityUsed > 0),
@@ -171,7 +173,7 @@ const Production: React.FC = () => {
         onClick={() => handleAddLot(lot)}
         className="p-4 bg-white rounded-2xl border-2 border-slate-50 hover:border-blue-400 cursor-pointer transition-all hover:shadow-xl group relative overflow-hidden flex flex-col"
       >
-        <div className="absolute top-0 right-0 p-1 bg-blue-50 text-blue-600 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-0 right-0 p-1 bg-blue-50 text-blue-600 rounded-bl-xl lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
           <span className="text-[9px] font-black px-1 uppercase tracking-tighter">Add to Mixer</span>
         </div>
         <div className="flex justify-between items-start mb-1">
@@ -180,22 +182,16 @@ const Production: React.FC = () => {
             {lot.color}
           </span>
         </div>
-        <p className="text-[9px] text-slate-400 font-bold uppercase truncate mb-3">Type: {lot.type} | Party: {vendor}</p>
+        <p className="text-[9px] text-slate-400 font-bold uppercase truncate mb-3">Party: {vendor}</p>
         
         <div className="grid grid-cols-2 gap-y-2 pt-2 border-t border-slate-50">
           <div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Available Stock</p>
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Stock</p>
             <p className="text-xs font-black text-blue-600">{lot.remainingQtyKg.toFixed(1)} KG</p>
           </div>
           <div className="text-right">
             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Rate (₨)</p>
-            <p className="text-xs font-black text-slate-700">₨ {lot.ratePerKg.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-          </div>
-          <div className="col-span-2 pt-1 border-t border-slate-50 mt-1">
-             <div className="flex justify-between items-center px-1">
-                <span className="text-[8px] font-black text-slate-400 uppercase">Total Lot Value</span>
-                <span className="text-[10px] font-black text-slate-800">{formatPKR(lotValue)}</span>
-             </div>
+            <p className="text-xs font-black text-slate-700">₨ {lot.ratePerKg.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -203,164 +199,198 @@ const Production: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex bg-white rounded-2xl p-1.5 border border-slate-200 shadow-sm max-w-2xl">
+    <div className="space-y-6 pb-20">
+      {/* Mobile Sticky Tab Bar */}
+      <div className="flex bg-white rounded-2xl p-1.5 border border-slate-200 shadow-sm max-w-full overflow-x-auto custom-scrollbar no-print sticky top-0 lg:relative z-20">
         {[
-          { id: 'mixing', label: '1. Mixing & Rolling', icon: '🥣' },
-          { id: 'sealing', label: '2. Sealing (3%)', icon: '✂️' },
-          { id: 'cutting', label: '3. Neck Cutting (17%)', icon: '🛍️' }
+          { id: 'mixing', label: '1. Mixing', icon: '🥣' },
+          { id: 'sealing', label: '2. Sealing', icon: '✂️' },
+          { id: 'cutting', label: '3. Cutting', icon: '🛍️' }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 py-3 px-6 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+            className={`flex-1 py-3 px-3 md:px-6 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 whitespace-nowrap ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
           >
             <span>{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.label.split('.')[1]}</span>
           </button>
         ))}
       </div>
 
       {activeTab === 'mixing' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
-          <div className="lg:col-span-3 flex flex-col space-y-4 h-[calc(100vh-220px)] sticky top-4">
-            <div className="bg-slate-900 p-5 rounded-[2.5rem] border border-slate-800 shadow-xl flex flex-col h-full overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 animate-fade-in relative">
+          
+          {/* Mobile Inventory Toggle */}
+          <button 
+            onClick={() => setShowInventory(!showInventory)}
+            className="lg:hidden fixed bottom-6 right-6 w-16 h-16 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl z-50 animate-bounce"
+          >
+            {showInventory ? '✕' : '📦'}
+          </button>
+
+          {/* Lot Inventory - Hidden on mobile by default */}
+          <div className={`
+            lg:col-span-3 lg:block
+            ${showInventory ? 'fixed inset-0 z-[100] bg-slate-900 p-6 pt-20' : 'hidden'}
+            lg:relative lg:inset-auto lg:p-0 lg:h-[calc(100vh-220px)] lg:sticky lg:top-4
+          `}>
+            {showInventory && (
+              <button 
+                onClick={() => setShowInventory(false)}
+                className="lg:hidden absolute top-6 right-6 text-white text-3xl"
+              >✕</button>
+            )}
+            <div className="bg-slate-900 p-5 rounded-[2rem] lg:rounded-[2.5rem] border border-slate-800 shadow-xl flex flex-col h-full overflow-hidden">
               <div className="mb-4">
-                <h3 className="text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-3">Master Lot Inventory</h3>
+                <h3 className="text-blue-400 font-black text-[10px] uppercase tracking-[0.2em] mb-3">Inventory</h3>
                 <div className="relative">
                   <input 
                     type="text" 
-                    placeholder="Search available stock..." 
+                    placeholder="Stock search..." 
                     className="w-full bg-slate-800 border border-slate-700 p-3 pl-10 rounded-xl text-xs font-bold text-white outline-none focus:border-blue-500 transition-all shadow-inner"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                   />
-                  <span className="absolute left-3.5 top-3.5 text-slate-500">🔍</span>
+                  <span className="absolute left-3.5 top-3.5 text-slate-500 text-xs">🔍</span>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 pr-1">
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
                 {danaMaterials.length > 0 && (
                   <div>
-                    <h4 className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-1 flex items-center">
-                       <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></span> Dana / Polythene
+                    <h4 className="text-[8px] font-black text-blue-500 uppercase tracking-widest mb-2 flex items-center">
+                       <span className="w-1 h-1 bg-blue-500 rounded-full mr-1"></span> Dana
                     </h4>
                     <div className="space-y-3">{danaMaterials.map(m => <MaterialCard key={m.id} lot={m} />)}</div>
                   </div>
                 )}
                 {colorMaterials.length > 0 && (
-                  <div>
-                    <h4 className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-1 flex items-center">
-                       <span className="w-1.5 h-1.5 bg-orange-500 rounded-full mr-2"></span> Colors
+                  <div className="mt-4">
+                    <h4 className="text-[8px] font-black text-orange-500 uppercase tracking-widest mb-2 flex items-center">
+                       <span className="w-1 h-1 bg-orange-500 rounded-full mr-1"></span> Colors
                     </h4>
                     <div className="space-y-3">{colorMaterials.map(m => <MaterialCard key={m.id} lot={m} />)}</div>
                   </div>
                 )}
                 {chemicalMaterials.length > 0 && (
-                  <div>
-                    <h4 className="text-[9px] font-black text-purple-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-1 flex items-center">
-                       <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></span> Chemicals
+                  <div className="mt-4">
+                    <h4 className="text-[8px] font-black text-purple-500 uppercase tracking-widest mb-2 flex items-center">
+                       <span className="w-1 h-1 bg-purple-500 rounded-full mr-1"></span> Chemicals
                     </h4>
                     <div className="space-y-3">{chemicalMaterials.map(m => <MaterialCard key={m.id} lot={m} />)}</div>
                   </div>
-                )}
-                {otherMaterials.length > 0 && (
-                  <div>
-                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-1 flex items-center">
-                       <span className="w-1.5 h-1.5 bg-slate-500 rounded-full mr-2"></span> Other Stock
-                    </h4>
-                    <div className="space-y-3">{otherMaterials.map(m => <MaterialCard key={m.id} lot={m} />)}</div>
-                  </div>
-                )}
-                {filteredMaterials.length === 0 && (
-                   <div className="py-20 text-center opacity-30 italic text-xs text-white uppercase tracking-widest">Stock Empty</div>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-9 space-y-8 pb-20">
-            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest mb-6 flex items-center space-x-2">
+          <div className="lg:col-span-9 space-y-6 md:space-y-8">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
+              <h3 className="font-black text-slate-800 text-xs md:text-sm uppercase tracking-widest mb-6 flex items-center space-x-2">
                 <span className="p-2 bg-blue-50 rounded-lg text-blue-500">🥣</span>
-                <span>Step 1: Production Ingredient Mixer (₨)</span>
+                <span>Production Mixer</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {selectedLots.length === 0 ? (
-                  <div className="col-span-2 py-16 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] bg-slate-50/50 flex flex-col items-center">
-                    <span className="text-4xl mb-4 opacity-30">📦</span>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] max-w-xs mx-auto">
-                      Select material lots from the inventory sidebar to begin mixing.
+                  <div className="col-span-full py-12 md:py-16 text-center border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50 flex flex-col items-center">
+                    <span className="text-3xl mb-4 opacity-30">📦</span>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] max-w-[180px] md:max-w-xs mx-auto">
+                      Select materials from inventory {window.innerWidth < 1024 ? '(tap the box icon)' : 'sidebar'} to begin mixing.
                     </p>
                   </div>
                 ) : (
                   selectedLots.map(lot => (
-                    <div key={lot.entryId} className="flex flex-col p-5 bg-slate-50 rounded-3xl border border-slate-100 hover:border-blue-200 transition-colors relative shadow-sm">
-                      <button onClick={() => setSelectedLots(selectedLots.filter(l => l.entryId !== lot.entryId))} className="absolute top-4 right-4 text-slate-300 hover:text-red-500 text-xl font-bold p-1">
-                        &times;
+                    <div key={lot.entryId} className="flex flex-col p-4 bg-slate-50 rounded-[2rem] border border-slate-100 relative shadow-sm">
+                      <button onClick={() => setSelectedLots(selectedLots.filter(l => l.entryId !== lot.entryId))} className="absolute top-3 right-3 text-slate-300 hover:text-red-500 text-lg font-bold">
+                        ✕
                       </button>
-                      <div className="mb-4">
-                        <p className="font-black text-slate-800 text-sm truncate pr-8">{lot.materialName}</p>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Category Contribution</p>
+                      <div className="mb-3">
+                        <p className="font-black text-slate-800 text-xs truncate pr-6">{lot.materialName}</p>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{lot.color}</p>
                       </div>
-                      <div className="flex items-center justify-between bg-white p-3 rounded-2xl border border-slate-100">
-                        <div className="flex items-center space-x-2 shrink-0">
-                           <input 
-                             type="number" step="0.01" 
-                             className="w-24 p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-center font-black text-blue-600 text-sm outline-none focus:border-blue-500 shadow-inner" 
-                             value={lot.quantityUsed || ''} 
-                             placeholder="0.00"
-                             onChange={e => updateLotQuantity(lot.entryId, parseFloat(e.target.value) || 0)} 
-                           />
-                           <span className="text-[10px] font-black text-slate-400 uppercase">KG</span>
-                        </div>
+                      <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-100">
+                        <input 
+                           type="number" step="0.01" 
+                           className="w-20 p-2 bg-slate-50 border border-slate-100 rounded-lg text-center font-black text-blue-600 text-xs outline-none focus:border-blue-500" 
+                           value={lot.quantityUsed || ''} 
+                           onChange={e => updateLotQuantity(lot.entryId, parseFloat(e.target.value) || 0)} 
+                        />
                         <div className="text-right">
-                           <p className="text-[9px] font-black text-slate-400 uppercase">Lot Rate</p>
-                           <p className="text-sm font-black text-slate-700">₨ {lot.rate.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                           <p className="text-[8px] font-black text-slate-400 uppercase">Amount</p>
+                           <p className="text-[10px] font-black text-slate-700">₨ {lot.rate.toLocaleString()}</p>
                         </div>
                       </div>
                     </div>
                   ))
                 )}
               </div>
-              <div className="mt-8 flex justify-between items-center bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
-                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Mixed weight</p>
-                  <p className="text-4xl font-black text-blue-400">{totalIngredientsWeight.toFixed(2)} KG</p>
+              <div className="mt-6 md:mt-8 flex flex-col md:flex-row justify-between items-center bg-slate-900 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] text-white gap-4">
+                <div className="text-center md:text-left">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Mixed weight</p>
+                  <p className="text-3xl md:text-4xl font-black text-blue-400">{totalIngredientsWeight.toFixed(2)} KG</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estimated Cost (₨)</p>
-                  <p className="text-2xl font-black text-slate-200">{formatPKR(finalIngredientsCost)}</p>
+                <div className="text-center md:text-right">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Batch Cost (₨)</p>
+                  <p className="text-xl md:text-2xl font-black text-slate-200">{formatPKR(finalIngredientsCost)}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm relative">
-              <h3 className="font-black text-slate-800 text-sm uppercase tracking-widest mb-6 flex items-center space-x-2">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm relative">
+              <h3 className="font-black text-slate-800 text-xs md:text-sm uppercase tracking-widest mb-6 flex items-center space-x-2">
                 <span className="p-2 bg-purple-50 rounded-lg text-purple-500">📏</span>
-                <span>Step 2: Roll Size Manifest (Target Define)</span>
+                <span>Roll Size Manifest</span>
               </h3>
-              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 mb-8 flex items-end gap-4 shadow-inner">
+              <div className="bg-slate-50 p-4 md:p-6 rounded-[2rem] border border-slate-100 mb-6 flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
                  <div className="flex-1">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Select Shopper Size Mapping</label>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase mb-2">Select Target Size Mapping</label>
                     <select 
-                      className="w-full border-2 border-slate-200 p-4 rounded-2xl font-black text-sm outline-none focus:border-purple-500 bg-white appearance-none"
+                      className="w-full border border-slate-200 p-3 md:p-4 rounded-xl md:rounded-2xl font-black text-xs md:text-sm outline-none focus:border-purple-500 bg-white"
                       onChange={e => handleAddSizeToManifest(e.target.value)}
                       value=""
                     >
-                      <option value="">-- Add Size Requirement --</option>
-                      {masterSizes.map(s => <option key={s.id} value={s.id}>{s.label} ({s.fixedRollCount} Rolls)</option>)}
+                      <option value="">-- Add Size --</option>
+                      {masterSizes.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
                  </div>
-                 <div className="p-4 bg-purple-600 text-white rounded-2xl flex flex-col items-center justify-center min-w-[140px] shadow-lg">
-                    <span className="text-[9px] font-black uppercase opacity-70">Manifest Sum</span>
-                    <span className="text-2xl font-black">{totalManifestWeight.toFixed(1)} KG</span>
+                 <div className="p-4 bg-purple-600 text-white rounded-xl md:rounded-2xl flex flex-row sm:flex-col items-center justify-between sm:justify-center min-w-[120px]">
+                    <span className="text-[8px] md:text-[9px] font-black uppercase opacity-70">Manifest</span>
+                    <span className="text-xl md:text-2xl font-black">{totalManifestWeight.toFixed(1)} KG</span>
                  </div>
               </div>
 
               {manifestGroups.length > 0 && (
-                <div className="space-y-4">
-                  <div className="overflow-hidden rounded-3xl border border-slate-100">
+                <div className="space-y-3 md:space-y-4">
+                  {/* Card view for mobile sizes */}
+                  <div className="block lg:hidden space-y-3">
+                    {manifestGroups.map(group => (
+                       <div key={group.sizeId} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
+                          <div>
+                             <p className="font-black text-slate-800 text-xs uppercase">{group.label}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase">{group.fixedCount} Rolls</p>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                             <div className="text-right">
+                                <p className="text-[8px] font-black text-slate-400 uppercase">KG/Roll</p>
+                                <input 
+                                  type="number" step="0.01" 
+                                  className="w-16 p-1 bg-white border border-slate-200 rounded text-center font-black text-blue-600 text-xs outline-none"
+                                  value={group.weightPerRollKg}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setManifestGroups(manifestGroups.map(g => g.sizeId === group.sizeId ? { ...g, weightPerRollKg: val } : g));
+                                  }}
+                                />
+                             </div>
+                             <button onClick={() => setManifestGroups(manifestGroups.filter(g => g.sizeId !== group.sizeId))} className="text-red-400">✕</button>
+                          </div>
+                       </div>
+                    ))}
+                  </div>
+                  {/* Table for desktop */}
+                  <div className="hidden lg:block overflow-hidden rounded-3xl border border-slate-100">
                     <table className="w-full text-left text-sm">
                        <thead className="bg-slate-50 text-[10px] font-black text-slate-500 uppercase tracking-widest">
                           <tr>
@@ -376,10 +406,10 @@ const Production: React.FC = () => {
                              <tr key={group.sizeId}>
                                 <td className="p-5 font-black text-slate-800 uppercase text-xs">{group.label}</td>
                                 <td className="p-5 text-center font-bold text-slate-400">{group.fixedCount}</td>
-                                <td className="p-5">
+                                <td className="p-5 text-center">
                                    <input 
                                      type="number" step="0.01" 
-                                     className="w-24 p-2 bg-slate-50 border border-slate-200 rounded-lg text-center font-black text-blue-600 outline-none"
+                                     className="w-20 p-2 bg-slate-50 border border-slate-200 rounded-lg text-center font-black text-blue-600 outline-none"
                                      value={group.weightPerRollKg}
                                      onChange={(e) => {
                                        const val = parseFloat(e.target.value) || 0;
@@ -389,7 +419,7 @@ const Production: React.FC = () => {
                                 </td>
                                 <td className="p-5 text-right font-black text-slate-700">{(group.fixedCount * group.weightPerRollKg).toFixed(1)} KG</td>
                                 <td className="p-5 text-right pr-10">
-                                   <button onClick={() => setManifestGroups(manifestGroups.filter(g => g.sizeId !== group.sizeId))} className="text-red-300 hover:text-red-500 transition-colors">🗑️</button>
+                                   <button onClick={() => setManifestGroups(manifestGroups.filter(g => g.sizeId !== group.sizeId))} className="text-red-300 hover:text-red-500">🗑️</button>
                                 </td>
                              </tr>
                           ))}
@@ -399,64 +429,43 @@ const Production: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-12 flex flex-col items-center border-t pt-8">
+              <div className="mt-8 md:mt-12 flex flex-col items-center border-t pt-8">
                  <button 
                   onClick={createBatch}
-                  className="px-24 py-7 bg-blue-600 text-white font-black uppercase tracking-[0.3em] rounded-3xl shadow-2xl hover:bg-blue-700 transition-all text-sm"
+                  className="w-full sm:w-auto px-8 md:px-24 py-5 md:py-7 bg-blue-600 text-white font-black uppercase tracking-[0.2em] md:tracking-[0.3em] rounded-2xl md:rounded-3xl shadow-xl hover:bg-blue-700 transition-all text-xs md:text-sm"
                  >
-                   Finalize Mixing & Deduct Stock
+                   Finalize Batch Stock
                  </button>
-                 <p className="mt-4 text-[10px] font-black text-slate-300 uppercase italic">Stock levels update instantly upon clicking</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {activeTab === 'sealing' && (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-          {batchesInSealing.length === 0 ? (
-            <div className="p-32 text-center bg-white rounded-[4rem] border-2 border-dashed border-slate-100 text-slate-300 uppercase font-black text-xs tracking-[0.3em]">No batches awaiting sealing</div>
+      {(activeTab === 'sealing' || activeTab === 'cutting') && (
+        <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 animate-fade-in">
+          {(activeTab === 'sealing' ? batchesInSealing : batchesInCutting).length === 0 ? (
+            <div className="p-20 md:p-32 text-center bg-white rounded-[2.5rem] md:rounded-[4rem] border-2 border-dashed border-slate-100 text-slate-300 uppercase font-black text-[10px] md:text-xs tracking-[0.2em] md:tracking-[0.3em]">
+              No batches awaiting {activeTab}
+            </div>
           ) : (
-            batchesInSealing.map(batch => (
-              <div key={batch.id} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-md">
-                <div className="flex justify-between items-center mb-8">
-                   <div className="flex items-center space-x-6">
-                      <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl">✂️</div>
-                      <div>
-                         <p className="text-2xl font-black text-slate-800 tracking-tight">{batch.batchNo}</p>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight: {batch.totalOutputKg.toFixed(1)} KG</p>
-                      </div>
-                   </div>
-                   <button onClick={() => advanceStage(batch.id, 'Sealing')} className="px-12 py-5 bg-orange-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-orange-600 transition-all text-xs">
-                     Finish Sealing (3%)
-                   </button>
+            (activeTab === 'sealing' ? batchesInSealing : batchesInCutting).map(batch => (
+              <div key={batch.id} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[4rem] border border-slate-100 shadow-md flex flex-col sm:flex-row justify-between items-center gap-6">
+                <div className="flex items-center space-x-4 md:space-x-6">
+                  <div className={`w-12 h-12 md:w-16 md:h-16 ${activeTab === 'sealing' ? 'bg-orange-100' : 'bg-green-100'} rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl`}>
+                    {activeTab === 'sealing' ? '✂️' : '🛍️'}
+                  </div>
+                  <div>
+                    <p className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">{batch.batchNo}</p>
+                    <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight: {batch.totalOutputKg.toFixed(1)} KG</p>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {activeTab === 'cutting' && (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-          {batchesInCutting.length === 0 ? (
-            <div className="p-32 text-center bg-white rounded-[4rem] border-2 border-dashed border-slate-100 text-slate-300 uppercase font-black text-xs tracking-[0.3em]">No batches awaiting cutting</div>
-          ) : (
-            batchesInCutting.map(batch => (
-              <div key={batch.id} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-md">
-                <div className="flex justify-between items-center mb-8">
-                   <div className="flex items-center space-x-6">
-                      <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center text-3xl">🛍️</div>
-                      <div>
-                         <p className="text-2xl font-black text-slate-800 tracking-tight">{batch.batchNo}</p>
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight: {batch.totalOutputKg.toFixed(1)} KG</p>
-                      </div>
-                   </div>
-                   <button onClick={() => advanceStage(batch.id, 'Neck Cutting')} className="px-12 py-5 bg-green-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-green-700 transition-all text-xs">
-                     Finish Cutting (17%)
-                   </button>
-                </div>
+                <button 
+                  onClick={() => advanceStage(batch.id, activeTab === 'sealing' ? 'Sealing' : 'Neck Cutting')} 
+                  className={`w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 ${activeTab === 'sealing' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all text-[10px] md:text-xs`}
+                >
+                  Confirm {activeTab === 'sealing' ? 'Sealing' : 'Cutting'}
+                </button>
               </div>
             ))
           )}

@@ -60,18 +60,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
       <Sidebar currentView={currentView} setView={setView} />
-      <main className="flex-1 ml-64 p-8">
-        <header className="mb-8 flex justify-between items-center no-print">
+      
+      {/* Spacer for mobile fixed header */}
+      <div className="h-16 lg:hidden" />
+
+      <main className="flex-1 lg:ml-64 p-4 md:p-8">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center no-print gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 capitalize tracking-tight">{currentView.replace('_', ' ')}</h1>
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-0.5">Prince Plastic Manufacturing System</p>
+            <h1 className="text-xl md:text-2xl font-black text-slate-900 capitalize tracking-tight">{currentView.replace('_', ' ')}</h1>
+            <p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest mt-0.5">Prince Plastic Manufacturing System</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3 bg-white border border-slate-100 px-4 py-2 rounded-xl text-slate-700 shadow-sm">
-              <span className="text-xl">📅</span>
-              <span className="font-bold text-sm">{new Date().toDateString()}</span>
+          <div className="flex items-center space-x-4 w-full md:w-auto">
+            <div className="flex items-center space-x-3 bg-white border border-slate-100 px-4 py-2 rounded-xl text-slate-700 shadow-sm flex-1 md:flex-none justify-center md:justify-start">
+              <span className="text-lg">📅</span>
+              <span className="font-bold text-xs md:text-sm">{new Date().toDateString()}</span>
             </div>
           </div>
         </header>

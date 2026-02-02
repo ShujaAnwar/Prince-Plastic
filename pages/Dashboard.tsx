@@ -43,10 +43,10 @@ const ProcessIndicator: React.FC<{ label: string; status: ProcessStatus; count: 
   return (
     <div className={`flex flex-col items-center p-5 bg-white rounded-3xl border-2 transition-all duration-500 relative overflow-hidden group ${status === 'active' ? 'border-yellow-200 ' + current.glow : status === 'error' ? 'border-red-200 ' + current.glow : 'border-slate-50'}`}>
       <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${current.dot}`}></div>
-      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">{icon}</div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-800 text-center">{label}</p>
+      <div className="text-3xl md:text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">{icon}</div>
+      <p className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-800 text-center">{label}</p>
       <div className="mt-2 flex items-center space-x-1">
-        <span className={`text-[11px] font-black ${count > 0 ? 'text-blue-600' : 'text-slate-300'}`}>
+        <span className={`text-[10px] md:text-[11px] font-black ${count > 0 ? 'text-blue-600' : 'text-slate-300'}`}>
           {count} BATCHES
         </span>
       </div>
@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
   
   const stageWastage = useMemo(() => {
     const completed = batches.filter(b => b.status === 'Completed');
-    if (completed.length === 0) return { sealing: config.sealingWastage, cutting: config.neckCuttingWastage, total: 20 };
+    if (completed.length === 0) return { sealing: config.sealingWastage, cutting: config.neckCuttingWastage, total: '0.0' };
     
     return {
       sealing: config.sealingWastage,
@@ -78,17 +78,6 @@ const Dashboard: React.FC = () => {
       total: (completed.reduce((acc, curr) => acc + curr.wastagePercentage, 0) / completed.length).toFixed(1)
     };
   }, [batches, config]);
-
-  const topSizes = useMemo(() => {
-    const sizeMap: Record<string, number> = {};
-    sales.forEach(s => {
-      sizeMap[s.sizeId] = (sizeMap[s.sizeId] || 0) + s.weightKg;
-    });
-    return Object.entries(sizeMap)
-      .map(([id, weight]) => ({ label: masterSizes.find(s => s.id === id)?.label || 'Unknown', weight }))
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, 5);
-  }, [sales, masterSizes]);
 
   const alerts = useMemo(() => {
     const list = [];
@@ -123,34 +112,28 @@ const Dashboard: React.FC = () => {
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 md:space-y-8 pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Prince Plastic Dashboard</h2>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Prince Plastic Dashboard</h2>
           <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-1">Weight-Based Inventory Management (PKR)</p>
         </div>
         <div className="flex items-center space-x-4">
-           <div className="bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center space-x-2 text-xs font-black text-blue-600 shadow-sm">
-             <span className="animate-blink">●</span>
+           <div className="bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 flex items-center space-x-2 text-[10px] font-black text-blue-600 shadow-sm">
+             <span className="animate-blink text-xs">●</span>
              <span>KG LIVE FEED</span>
            </div>
         </div>
       </div>
 
-      <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
+      <div className="bg-slate-900 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl relative overflow-hidden group">
         <div className="absolute -top-20 -right-20 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none"></div>
         <div className="relative z-10">
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em]">Manufacturing Pipeline</h3>
-            <div className="flex space-x-4">
-              <div className="flex items-center space-x-2 text-[10px] font-black text-slate-500">
-                <div className="w-2 h-2 rounded-full bg-yellow-400 animate-blink"></div>
-                <span>Work In Progress</span>
-              </div>
-            </div>
+          <div className="flex justify-between items-center mb-6 md:mb-10">
+            <h3 className="text-[10px] md:text-[11px] font-black text-blue-400 uppercase tracking-[0.3em]">Manufacturing Pipeline</h3>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <ProcessIndicator label="Mixing Unit" icon="🥣" status={counts.mixing > 0 ? 'idle' : 'idle'} count={counts.mixing} />
             <ProcessIndicator label="Sealing (3%)" icon="✂️" status={counts.sealing > 0 ? 'active' : 'idle'} count={counts.sealing} />
             <ProcessIndicator label="Neck Cutting (17%)" icon="🛍️" status={counts.cutting > 0 ? 'active' : 'idle'} count={counts.cutting} />
@@ -159,7 +142,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatsCard 
           title="Raw Material (KG)" 
           value={`${totalRawWeight.toLocaleString()} KG`} 
@@ -194,33 +177,33 @@ const Dashboard: React.FC = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-            <h3 className="text-[10px] font-black text-slate-400 mb-8 uppercase tracking-widest">Efficiency Trend (Last 7 Batches)</h3>
-            <div className="h-72">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+            <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest">Efficiency Trend (Last 7 Batches)</h3>
+            <div className="h-64 md:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={productionData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} />
                   <Tooltip 
                     contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px'}} 
                     cursor={{fill: '#f8fafc'}}
                   />
                   <Legend verticalAlign="top" align="right" iconType="circle" />
-                  <Bar dataKey="output" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Finished KG" barSize={20} />
-                  <Bar dataKey="wastage" fill="#ef4444" radius={[6, 6, 0, 0]} name="Wastage KG" barSize={20} />
+                  <Bar dataKey="output" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Finished KG" barSize={16} />
+                  <Bar dataKey="wastage" fill="#ef4444" radius={[6, 6, 0, 0]} name="Wastage KG" barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        <div className="space-y-8">
-           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-              <h3 className="text-[10px] font-black text-slate-400 mb-8 uppercase tracking-widest">Stock KG Distribution</h3>
-              <div className="h-64">
+        <div className="space-y-6 md:space-y-8">
+           <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+              <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest">Stock KG Distribution</h3>
+              <div className="h-56 md:h-64">
                  {stockDistribution.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                        <PieChart>
@@ -228,8 +211,8 @@ const Dashboard: React.FC = () => {
                              data={stockDistribution}
                              cx="50%"
                              cy="50%"
-                             innerRadius={60}
-                             outerRadius={90}
+                             innerRadius={50}
+                             outerRadius={80}
                              paddingAngle={5}
                              dataKey="value"
                              stroke="none"
@@ -247,21 +230,21 @@ const Dashboard: React.FC = () => {
               </div>
            </div>
 
-           <div className="bg-red-500 p-8 rounded-[2.5rem] shadow-xl text-white">
+           <div className="bg-red-500 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl text-white">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 opacity-60">System Inventory Alerts</h3>
-              <div className="space-y-4">
+              <div className="space-y-3">
                  {alerts.length === 0 ? (
-                    <div className="flex items-center space-x-3 bg-white/10 p-4 rounded-2xl border border-white/10">
-                       <span className="text-xl">✅</span>
-                       <span className="text-xs font-black uppercase tracking-widest">Stock Levels Optimal</span>
+                    <div className="flex items-center space-x-3 bg-white/10 p-3 rounded-2xl border border-white/10">
+                       <span className="text-lg">✅</span>
+                       <span className="text-[10px] font-black uppercase tracking-widest">Stock Levels Optimal</span>
                     </div>
                  ) : (
                     alerts.slice(0, 3).map((a, i) => (
-                       <div key={i} className="flex items-center space-x-3 bg-white/20 p-4 rounded-2xl border border-white/20 animate-pulse">
-                          <span className="text-xl">⚠️</span>
+                       <div key={i} className="flex items-center space-x-3 bg-white/20 p-3 rounded-2xl border border-white/20 animate-pulse">
+                          <span className="text-lg">⚠️</span>
                           <div className="min-w-0">
-                             <p className="text-[9px] font-black uppercase opacity-60">{a.type}</p>
-                             <p className="text-xs font-black truncate">{a.msg}</p>
+                             <p className="text-[8px] font-black uppercase opacity-60">{a.type}</p>
+                             <p className="text-[10px] font-black truncate">{a.msg}</p>
                           </div>
                        </div>
                     ))
