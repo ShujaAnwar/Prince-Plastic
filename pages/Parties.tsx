@@ -24,7 +24,8 @@ const Parties: React.FC = () => {
 
   const handleEdit = (party: Supplier | Customer) => {
     setEditingParty(party);
-    setFormData({ name: party.name, contact: party.contact, openingBalance: party.openingBalance });
+    // Fix: Using phone as contact property does not exist on Supplier/Customer
+    setFormData({ name: party.name, contact: party.phone, openingBalance: party.openingBalance });
     setShowModal(true);
   };
 
@@ -32,16 +33,20 @@ const Parties: React.FC = () => {
     e.preventDefault();
     if (editingParty) {
       if (activeType === PartyType.SUPPLIER) {
-        db.updateSupplier({ ...editingParty, ...formData } as Supplier);
+        // Fix: Map formData.contact to phone and ensure interface compatibility
+        db.updateSupplier({ ...editingParty, ...formData, phone: formData.contact } as Supplier);
       } else {
-        db.updateCustomer({ ...editingParty, ...formData } as Customer);
+        // Fix: Map formData.contact to phone and ensure interface compatibility
+        db.updateCustomer({ ...editingParty, ...formData, phone: formData.contact } as Customer);
       }
     } else {
       const id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11);
       if (activeType === PartyType.SUPPLIER) {
-        db.saveSupplier({ id, ...formData } as Supplier);
+        // Fix: Map formData.contact to phone and provide default values for missing required interface properties
+        db.saveSupplier({ id, name: formData.name, openingBalance: formData.openingBalance, phone: formData.contact, contactPerson: '', email: '', address: '', status: 'active' } as Supplier);
       } else {
-        db.saveCustomer({ id, ...formData } as Customer);
+        // Fix: Map formData.contact to phone and provide default values for missing required interface properties
+        db.saveCustomer({ id, name: formData.name, openingBalance: formData.openingBalance, phone: formData.contact, contactPerson: '', email: '', address: '', status: 'active' } as Customer);
       }
     }
     setShowModal(false);
@@ -129,7 +134,8 @@ const Parties: React.FC = () => {
                     <tr key={party.id} className="hover:bg-slate-50 transition group">
                       <td className="p-4">
                          <div className="font-black text-slate-800 uppercase text-xs">{party.name}</div>
-                         <div className="text-[10px] text-slate-400 font-bold">{party.contact}</div>
+                         {/* Fix: Using phone property as contact does not exist on Supplier/Customer */}
+                         <div className="text-[10px] text-slate-400 font-bold">{party.phone}</div>
                       </td>
                       <td className="p-4 text-right text-slate-500 font-bold">₨ {party.openingBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                       <td className="p-4 text-right font-black text-blue-600">{formatPKR(closingBal)}</td>

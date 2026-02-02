@@ -1,5 +1,5 @@
 
-export type EntityStatus = 'active' | 'deleted';
+export type EntityStatus = 'active' | 'inactive' | 'deleted';
 export type RollStatus = 'Ready for Sealing' | 'Sealed' | 'Finished';
 export type BatchStatus = 'Mixing' | 'Sealing' | 'Cutting' | 'Completed';
 
@@ -45,17 +45,23 @@ export interface AuditLog {
 export interface Supplier {
   id: string;
   name: string;
-  contact: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  address: string;
   openingBalance: number;
-  status?: EntityStatus;
+  status: EntityStatus;
 }
 
 export interface Customer {
   id: string;
   name: string;
-  contact: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+  address: string;
   openingBalance: number;
-  status?: EntityStatus;
+  status: EntityStatus;
 }
 
 export interface ConsumedMaterial {
@@ -107,35 +113,6 @@ export interface ProductionBatch {
   costPerKg: number;
   totalBatchCost: number;
   status: BatchStatus;
-}
-
-export interface Roll {
-  id: string;
-  batchId: string;
-  rollNo: string;
-  sizeId: string;
-  weightKg: number;
-  costPerKg: number;
-  status: RollStatus;
-}
-
-export interface ShopperProduction {
-  id: string;
-  batchId: string;
-  sizeId: string;
-  weightProducedKg: number; 
-  wastageKg: number;
-  wastagePercentage: number;
-  costPerKg: number; 
-  date: string;
-}
-
-export interface FinishedGoods {
-  sizeId: string;
-  label: string;
-  weightKg: number; 
-  costPricePerKg: number; 
-  sellingPricePerKg: number;
 }
 
 export interface Sale {

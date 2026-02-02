@@ -1,9 +1,7 @@
 
 import { 
   Supplier, Customer, RawMaterialEntry, RawMaterialStock, 
-  ProductionBatch, Roll, ShopperProduction, FinishedGoods, 
-  Sale, LedgerEntry, MasterSize, MasterColor, MasterMaterialType, SystemConfig, AuditLog,
-  RollRequirement
+  ProductionBatch, Sale, LedgerEntry, MasterSize, MasterColor, MasterMaterialType, SystemConfig, AuditLog
 } from './types';
 
 const STORAGE_KEYS = {
@@ -11,8 +9,6 @@ const STORAGE_KEYS = {
   CUSTOMERS: 'pp_customers',
   RAW_MATERIALS: 'pp_raw_materials',
   BATCHES: 'pp_batches',
-  ROLLS: 'pp_rolls',
-  SHOPPER_PRODUCTION: 'pp_shopper_production',
   SALES: 'pp_sales',
   LEDGER: 'pp_ledger',
   MASTER_SIZES: 'pp_master_sizes',
@@ -38,12 +34,49 @@ const set = <T,>(key: string, value: T): void => {
 export const db = {
   // Master Data
   getSuppliers: () => get<Supplier[]>(STORAGE_KEYS.SUPPLIERS, []),
-  saveSupplier: (s: Supplier) => set(STORAGE_KEYS.SUPPLIERS, [...db.getSuppliers(), s]),
-  updateSupplier: (s: Supplier) => set(STORAGE_KEYS.SUPPLIERS, db.getSuppliers().map(item => item.id === s.id ? s : item)),
+  saveSupplier: (s: Supplier) => {
+    set(STORAGE_KEYS.SUPPLIERS, [...db.getSuppliers(), s]);
+    db.addAuditLog('Setup', `Added Vendor: ${s.name}`);
+  },
+  updateSupplier: (s: Supplier) => {
+    set(STORAGE_KEYS.SUPPLIERS, db.getSuppliers().map(item => item.id === s.id ? s : item));
+    db.addAuditLog('Update', `Updated Vendor: ${s.name}`);
+  },
+  deleteSupplier: (id: string) => {
+    const purchases = db.getRawMaterials().filter(m => m.supplierId === id);
+    const supplier = db.getSuppliers().find(s => s.id === id);
+    if (purchases.length > 0) {
+      // If transactions exist, just deactivate
+      const s = db.getSuppliers().map(item => item.id === id ? { ...item, status: 'inactive' } : item);
+      set(STORAGE_KEYS.SUPPLIERS, s);
+      db.addAuditLog('Update', `Deactivated Vendor (Transactions Exist): ${supplier?.name}`);
+    } else {
+      set(STORAGE_KEYS.SUPPLIERS, db.getSuppliers().filter(item => item.id !== id));
+      db.addAuditLog('Delete', `Deleted Vendor: ${supplier?.name}`);
+    }
+  },
   
   getCustomers: () => get<Customer[]>(STORAGE_KEYS.CUSTOMERS, []),
-  saveCustomer: (c: Customer) => set(STORAGE_KEYS.CUSTOMERS, [...db.getCustomers(), c]),
-  updateCustomer: (c: Customer) => set(STORAGE_KEYS.CUSTOMERS, db.getCustomers().map(item => item.id === c.id ? c : item)),
+  saveCustomer: (c: Customer) => {
+    set(STORAGE_KEYS.CUSTOMERS, [...db.getCustomers(), c]);
+    db.addAuditLog('Setup', `Added Customer: ${c.name}`);
+  },
+  updateCustomer: (c: Customer) => {
+    set(STORAGE_KEYS.CUSTOMERS, db.getCustomers().map(item => item.id === c.id ? c : item));
+    db.addAuditLog('Update', `Updated Customer: ${c.name}`);
+  },
+  deleteCustomer: (id: string) => {
+    const sales = db.getSales().filter(s => s.customerId === id);
+    const customer = db.getCustomers().find(c => c.id === id);
+    if (sales.length > 0) {
+      const c = db.getCustomers().map(item => item.id === id ? { ...item, status: 'inactive' } : item);
+      set(STORAGE_KEYS.CUSTOMERS, c);
+      db.addAuditLog('Update', `Deactivated Customer (Transactions Exist): ${customer?.name}`);
+    } else {
+      set(STORAGE_KEYS.CUSTOMERS, db.getCustomers().filter(item => item.id !== id));
+      db.addAuditLog('Delete', `Deleted Customer: ${customer?.name}`);
+    }
+  },
 
   getSizes: () => get<MasterSize[]>(STORAGE_KEYS.MASTER_SIZES, []),
   saveSize: (label: string, weight: number, rolls: number) => {
@@ -111,7 +144,6 @@ export const db = {
   getBatches: () => get<ProductionBatch[]>(STORAGE_KEYS.BATCHES, []),
   saveBatch: (batch: ProductionBatch) => {
     set(STORAGE_KEYS.BATCHES, [...db.getBatches(), batch]);
-    // Deduct stock
     const raw = db.getRawMaterials();
     batch.consumedMaterials.forEach(cons => {
       const entry = raw.find(r => r.id === cons.entryId);
@@ -154,7 +186,6 @@ export const db = {
 
       batches.forEach(b => {
         const sizeWeight = b.rollManifest.filter(r => r.sizeId === size.id).reduce((a, b) => a + b.weightKg, 0);
-        // Apply cumulative wastage ratio to the specific size weight
         const outputRatio = b.totalOutputKg / b.totalInputKg;
         const netWeight = sizeWeight * outputRatio;
         weight += netWeight;
@@ -171,7 +202,7 @@ export const db = {
         label: size.label,
         weightKg: Math.max(0, weight),
         costPricePerKg: count > 0 ? totalCost / (weight + sales.filter(s => s.sizeId === size.id).reduce((a,b)=>a+b.weightKg, 0)) : 0,
-        sellingPricePerKg: (totalCost / (weight + 0.00001)) * 1.2 // Default 20% markup
+        sellingPricePerKg: (totalCost / (weight + 0.00001)) * 1.2
       };
     });
   },
