@@ -195,6 +195,21 @@ export const db = {
   // Ledgers
   getLedger: () => get<LedgerEntry[]>(STORAGE_KEYS.LEDGER, []),
   saveLedgerEntry: (entry: LedgerEntry) => set(STORAGE_KEYS.LEDGER, [...db.getLedger(), entry]),
+  
+  // Historical balance helper
+  getPartyBalanceAtDate: (partyId: string, date: string, partyType: 'Supplier' | 'Customer'): number => {
+    const parties = partyType === 'Supplier' ? db.getSuppliers() : db.getCustomers();
+    const party = parties.find(p => p.id === partyId);
+    if (!party) return 0;
+    
+    const entries = db.getLedger().filter(l => l.partyId === partyId && l.date < date);
+    let balance = party.openingBalance;
+    entries.forEach(e => {
+      if (partyType === 'Customer') balance += (e.debit - e.credit);
+      else balance += (e.credit - e.debit);
+    });
+    return balance;
+  },
 
   // Financial Summary
   getFinancialSummary: () => {
